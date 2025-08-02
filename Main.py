@@ -9,15 +9,15 @@ import time
 # Configure the page
 
 st.set_page_config(
-page_title="Interactive Data Dashboard”,
-page_icon="📊”,
-layout="wide”,
-initial_sidebar_state="expanded”
+page_title="Interactive Data Dashboard",
+page_icon="📊",
+layout="wide",
+initial_sidebar_state="expanded"
 )
 
 # Custom CSS for better styling
 
-st.markdown(”””
+st.markdown("""
 
 <style>
     .main-header {
@@ -34,7 +34,7 @@ st.markdown(”””
     }
 </style>
 
-"””, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # Main title
 
@@ -42,14 +42,14 @@ st.markdown(’<h1 class="main-header">📊 Interactive Data Dashboard</h1>’, 
 
 # Sidebar
 
-st.sidebar.title("🎛️ Dashboard Controls”)
-st.sidebar.markdown(”—”)
+st.sidebar.title("🎛️ Dashboard Controls")
+st.sidebar.markdown("—")
 
 # Sample data generation
 
 @st.cache_data
 def generate_sample_data():
-"”"Generate sample data for the dashboard”””
+"""Generate sample data for the dashboard"""
 np.random.seed(42)
 dates = pd.date_range(start=‘2024-01-01’, end=‘2024-12-31’, freq=‘D’)
 
@@ -76,24 +76,24 @@ df = generate_sample_data()
 
 # Sidebar filters
 
-st.sidebar.subheader("📅 Date Range”)
+st.sidebar.subheader("📅 Date Range")
 date_range = st.sidebar.date_input(
-"Select date range:”,
+"Select date range:",
 value=(df[‘date’].min(), df[‘date’].max()),
 min_value=df[‘date’].min(),
 max_value=df[‘date’].max()
 )
 
-st.sidebar.subheader("🏷️ Category Filter”)
+st.sidebar.subheader("🏷️ Category Filter")
 categories = st.sidebar.multiselect(
-"Select categories:”,
+"Select categories:",
 options=df[‘category’].unique(),
 default=df[‘category’].unique()
 )
 
-st.sidebar.subheader("🗺️ Region Filter”)
+st.sidebar.subheader("🗺️ Region Filter")
 regions = st.sidebar.multiselect(
-"Select regions:”,
+"Select regions:",
 options=df[‘region’].unique(),
 default=df[‘region’].unique()
 )
@@ -118,43 +118,43 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
 total_sales = filtered_df[‘sales’].iloc[-1] if len(filtered_df) > 0 else 0
 st.metric(
-label="📈 Total Sales”,
-value=f”{total_sales:,.0f}”,
-delta=f”{filtered_df[‘sales’].diff().mean():.1f} avg daily”
+label="📈 Total Sales",
+value=f"{total_sales:,.0f}",
+delta=f"{filtered_df[‘sales’].diff().mean():.1f} avg daily"
 )
 
 with col2:
 total_customers = filtered_df[‘customers’].sum()
 st.metric(
-label="👥 Total Customers”,
-value=f”{total_customers:,}”,
-delta=f”{filtered_df[‘customers’].mean():.1f} avg daily”
+label="👥 Total Customers",
+value=f"{total_customers:,}",
+delta=f"{filtered_df[‘customers’].mean():.1f} avg daily"
 )
 
 with col3:
 total_revenue = filtered_df[‘revenue’].sum()
 st.metric(
-label="💰 Total Revenue”,
-value=f”${total_revenue:,.0f}”,
-delta=f”${filtered_df[‘revenue’].mean():.0f} avg daily”
+label="💰 Total Revenue",
+value=f"${total_revenue:,.0f}",
+delta=f"${filtered_df[‘revenue’].mean():.0f} avg daily"
 )
 
 with col4:
 avg_order_value = total_revenue / total_customers if total_customers > 0 else 0
 st.metric(
-label="🛒 Avg Order Value”,
-value=f”${avg_order_value:.2f}”,
-delta="12.3%”
+label="🛒 Avg Order Value",
+value=f"${avg_order_value:.2f}",
+delta="12.3%"
 )
 
-st.markdown(”—”)
+st.markdown("—")
 
 # Charts section
 
 col1, col2 = st.columns(2)
 
 with col1:
-st.subheader("📊 Sales Trend Over Time”)
+st.subheader("📊 Sales Trend Over Time")
 if len(filtered_df) > 0:
 fig_sales = px.line(
 filtered_df,
@@ -164,16 +164,16 @@ title=‘Daily Sales Progression’,
 color_discrete_sequence=[’#1f77b4’]
 )
 fig_sales.update_layout(
-xaxis_title="Date”,
-yaxis_title="Cumulative Sales”,
+xaxis_title="Date",
+yaxis_title="Cumulative Sales",
 hovermode=‘x unified’
 )
 st.plotly_chart(fig_sales, use_container_width=True)
 else:
-st.info("No data available for selected filters”)
+st.info("No data available for selected filters")
 
 with col2:
-st.subheader("🥧 Sales by Category”)
+st.subheader("🥧 Sales by Category")
 if len(filtered_df) > 0:
 category_sales = filtered_df.groupby(‘category’)[‘revenue’].sum().reset_index()
 fig_pie = px.pie(
@@ -184,11 +184,11 @@ title=‘Revenue Distribution by Category’
 )
 st.plotly_chart(fig_pie, use_container_width=True)
 else:
-st.info("No data available for selected filters”)
+st.info("No data available for selected filters")
 
 # Full width chart
 
-st.subheader("📈 Revenue and Customer Trends”)
+st.subheader("📈 Revenue and Customer Trends")
 if len(filtered_df) > 0:
 fig_dual = go.Figure()
 
@@ -234,14 +234,14 @@ fig_dual.update_layout(
 st.plotly_chart(fig_dual, use_container_width=True)
 ```
 
-st.markdown(”—”)
+st.markdown("—")
 
 # Interactive features section
 
 col1, col2 = st.columns(2)
 
 with col1:
-st.subheader("🎯 Interactive Features”)
+st.subheader("🎯 Interactive Features")
 
 ```
 # Number input
@@ -269,7 +269,7 @@ chart_type = st.selectbox(
 ```
 
 with col2:
-st.subheader("📋 Data Sample”)
+st.subheader("📋 Data Sample")
 if len(filtered_df) > 0:
 st.dataframe(
 filtered_df.tail(10)[[‘date’, ‘sales’, ‘customers’, ‘revenue’, ‘category’]],
@@ -278,29 +278,29 @@ use_container_width=True
 
 # File upload section
 
-st.markdown(”—”)
-st.subheader("📁 Upload Your Own Data”)
+st.markdown("—")
+st.subheader("📁 Upload Your Own Data")
 uploaded_file = st.file_uploader(
-"Choose a CSV file”,
+"Choose a CSV file",
 type=[‘csv’],
-help="Upload a CSV file with columns: date, sales, customers, revenue, category, region”
+help="Upload a CSV file with columns: date, sales, customers, revenue, category, region"
 )
 
 if uploaded_file is not None:
 try:
 user_df = pd.read_csv(uploaded_file)
-st.success("File uploaded successfully!”)
-st.write("Preview of uploaded data:”)
+st.success("File uploaded successfully!")
+st.write("Preview of uploaded data:")
 st.dataframe(user_df.head())
 except Exception as e:
-st.error(f”Error reading file: {e}”)
+st.error(f"Error reading file: {e}")
 
 # Real-time simulation
 
-st.markdown(”—”)
-st.subheader("⚡ Real-time Data Simulation”)
+st.markdown("—")
+st.subheader("⚡ Real-time Data Simulation")
 
-if st.button("Start Real-time Simulation”):
+if st.button("Start Real-time Simulation"):
 placeholder = st.empty()
 progress_bar = st.progress(0)
 
@@ -329,8 +329,8 @@ st.success("Simulation completed!")
 
 # Footer
 
-st.markdown(”—”)
-st.markdown(”””
+st.markdown("—")
+st.markdown("""
 
 <div style='text-align: center; color: #666666;'>
     <p>Built with ❤️ using Streamlit | Last updated: {}</p>
@@ -339,8 +339,8 @@ st.markdown(”””
 
 # Sidebar info
 
-st.sidebar.markdown(”—”)
-st.sidebar.info(”””
+st.sidebar.markdown("—")
+st.sidebar.info("""
 **Dashboard Features:**
 
 - 📊 Interactive charts
@@ -348,6 +348,6 @@ st.sidebar.info(”””
 - 📈 Real-time simulation
 - 📁 File upload
 - 📱 Responsive design
-  "””)
+  """)
 
-st.sidebar.success("Dashboard loaded successfully!”)
+st.sidebar.success("Dashboard loaded successfully!")
