@@ -4,274 +4,311 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
+import plotly.express as px
+import plotly.graph_objects as go
 
 # ページ設定
 
 st.set_page_config(
-page_title=“データ分析ダッシュボード”,
+page_title=“Streamlit サンプルアプリ”,
 page_icon=“📊”,
-layout=“wide”
+layout=“wide”,
+initial_sidebar_state=“expanded”
 )
 
-# タイトル
+# メインタイトル
 
-st.title(“📊 データ分析ダッシュボード”)
+st.title(“📊 Streamlit サンプルアプリケーション”)
 st.markdown(”—”)
 
 # サイドバー
 
 st.sidebar.header(“設定”)
-
-# サンプルデータ生成関数
-
-@st.cache_data
-def generate_sample_data(n_samples=1000):
-“”“サンプルデータを生成”””
-np.random.seed(42)
-
-```
-dates = pd.date_range(
-    start=datetime.now() - timedelta(days=365),
-    end=datetime.now(),
-    freq="D"
+selected_demo = st.sidebar.selectbox(
+“デモを選択してください”,
+[“データ分析”, “機械学習予測”, “リアルタイムチャート”, “画像処理”]
 )
 
-data = []
-for i, date in enumerate(dates):
-    n_records = np.random.randint(1, 6)
-    for _ in range(n_records):
-        data.append({
-            "date": date,
-            "sales": np.random.normal(1000, 200),
-            "category": np.random.choice(["A", "B", "C", "D"]),
-            "region": np.random.choice(["Tokyo", "Osaka", "Nagoya", "Fukuoka"]),
-            "customer_age": np.random.randint(18, 70),
-            "satisfaction": np.random.randint(1, 6)
-        })
+# データ分析デモ
 
-df = pd.DataFrame(data)
-df["sales"] = np.maximum(df["sales"], 0)  # 負の値を除去
-return df
+if selected_demo == “データ分析”:
+st.header(“📈 データ分析デモ”)
+
 ```
-
-# データ読み込み
+# サンプルデータ生成
+@st.cache_data
+def generate_sample_data():
+    np.random.seed(42)
+    dates = pd.date_range(start="2023-01-01", end="2024-12-31", freq="D")
+    data = {
+        "date": dates,
+        "sales": np.random.normal(1000, 200, len(dates)) + np.sin(np.arange(len(dates)) * 2 * np.pi / 365) * 100,
+        "visitors": np.random.poisson(150, len(dates)),
+        "conversion_rate": np.random.uniform(0.02, 0.08, len(dates)),
+        "category": np.random.choice(["A", "B", "C"], len(dates))
+    }
+    df = pd.DataFrame(data)
+    df["sales"] = np.maximum(df["sales"], 0)  # 負の値を0に
+    return df
 
 df = generate_sample_data()
 
-# サイドバーでフィルタリング
-
-st.sidebar.subheader(“データフィルタ”)
-
-# 日付範囲選択
-
-date_range = st.sidebar.date_input(
-“日付範囲を選択”,
-value=(df[“date”].min().date(), df[“date”].max().date()),
-min_value=df[“date”].min().date(),
-max_value=df[“date”].max().date()
-)
-
-# カテゴリ選択
-
-categories = st.sidebar.multiselect(
-“カテゴリを選択”,
-options=df[“category”].unique(),
-default=df[“category”].unique()
-)
-
-# 地域選択
-
-regions = st.sidebar.multiselect(
-“地域を選択”,
-options=df[“region”].unique(),
-default=df[“region”].unique()
-)
+# フィルター
+col1, col2 = st.columns(2)
+with col1:
+    start_date = st.date_input(
+        "開始日",
+        value=datetime(2024, 1, 1),
+        min_value=df["date"].min().date(),
+        max_value=df["date"].max().date()
+    )
+with col2:
+    end_date = st.date_input(
+        "終了日",
+        value=datetime(2024, 12, 31),
+        min_value=df["date"].min().date(),
+        max_value=df["date"].max().date()
+    )
 
 # データフィルタリング
+filtered_df = df[(df["date"] >= pd.Timestamp(start_date)) & (df["date"] <= pd.Timestamp(end_date))]
 
-if len(date_range) == 2:
-start_date, end_date = date_range
-filtered_df = df[
-(df[“date”].dt.date >= start_date) &
-(df[“date”].dt.date <= end_date) &
-(df[“category”].isin(categories)) &
-(df[“region”].isin(regions))
-]
-else:
-filtered_df = df[
-(df[“category”].isin(categories)) &
-(df[“region”].isin(regions))
-]
-
-# メインコンテンツ
-
+# メトリクス表示
 col1, col2, col3, col4 = st.columns(4)
-
 with col1:
-st.metric(“総売上”, f”¥{filtered_df[‘sales’].sum():,.0f}”)
-
+    st.metric("総売上", f"¥{filtered_df['sales'].sum():,.0f}")
 with col2:
-st.metric(“平均売上”, f”¥{filtered_df[‘sales’].mean():,.0f}”)
-
+    st.metric("総訪問者数", f"{filtered_df['visitors'].sum():,}")
 with col3:
-st.metric(“取引件数”, f”{len(filtered_df):,}”)
-
+    avg_conversion = filtered_df["conversion_rate"].mean()
+    st.metric("平均コンバージョン率", f"{avg_conversion:.2%}")
 with col4:
-st.metric(“平均満足度”, f”{filtered_df[‘satisfaction’].mean():.1f}/5”)
+    avg_daily_sales = filtered_df["sales"].mean()
+    st.metric("平均日次売上", f"¥{avg_daily_sales:,.0f}")
 
-st.markdown(”—”)
+# グラフ表示
+st.subheader("売上推移")
+fig = px.line(filtered_df, x="date", y="sales", title="日次売上推移")
+st.plotly_chart(fig, use_container_width=True)
 
-# グラフエリア
-
-col1, col2 = st.columns(2)
-
-with col1:
-st.subheader(“📈 日別売上推移”)
-daily_sales = filtered_df.groupby(“date”)[“sales”].sum().reset_index()
-
-```
-fig, ax = plt.subplots(figsize=(10, 6))
-ax.plot(daily_sales["date"], daily_sales["sales"], linewidth=2)
-ax.set_xlabel("日付")
-ax.set_ylabel("売上 (¥)")
-ax.tick_params(axis="x", rotation=45)
-plt.tight_layout()
-st.pyplot(fig)
+# 散布図
+st.subheader("訪問者数と売上の関係")
+fig2 = px.scatter(filtered_df, x="visitors", y="sales", color="category",
+                 title="訪問者数 vs 売上", trendline="ols")
+st.plotly_chart(fig2, use_container_width=True)
 ```
 
-with col2:
-st.subheader(“🥧 カテゴリ別売上”)
-category_sales = filtered_df.groupby(“category”)[“sales”].sum()
+# 機械学習デモ
+
+elif selected_demo == “機械学習予測”:
+st.header(“🤖 機械学習予測デモ”)
 
 ```
-fig, ax = plt.subplots(figsize=(8, 8))
-ax.pie(category_sales.values, labels=category_sales.index, autopct="%1.1f%%")
-st.pyplot(fig)
-```
-
-st.markdown(”—”)
-
-# 詳細分析
-
-col1, col2 = st.columns(2)
-
-with col1:
-st.subheader(“🌍 地域別売上”)
-region_sales = filtered_df.groupby(“region”)[“sales”].sum().sort_values(ascending=True)
-
-```
-fig, ax = plt.subplots(figsize=(10, 6))
-bars = ax.barh(range(len(region_sales)), region_sales.values)
-ax.set_yticks(range(len(region_sales)))
-ax.set_yticklabels(region_sales.index)
-ax.set_xlabel("売上 (¥)")
-
-# カラフルなバー
-colors = plt.cm.viridis(np.linspace(0, 1, len(bars)))
-for bar, color in zip(bars, colors):
-    bar.set_color(color)
-
-plt.tight_layout()
-st.pyplot(fig)
-```
-
-with col2:
-st.subheader(“👥 年齢層別分析”)
-
-```
-# 年齢層を作成
-filtered_df["age_group"] = pd.cut(
-    filtered_df["customer_age"], 
-    bins=[0, 30, 40, 50, 100], 
-    labels=["~30歳", "30-40歳", "40-50歳", "50歳~"]
-)
-
-age_analysis = filtered_df.groupby("age_group").agg({
-    "sales": "mean",
-    "satisfaction": "mean"
-}).round(1)
-
-st.dataframe(age_analysis, use_container_width=True)
-```
-
-# データテーブル
-
-st.markdown(”—”)
-st.subheader(“📋 データ詳細”)
-
-# データ表示オプション
-
-show_raw_data = st.checkbox(“生データを表示”)
-
-if show_raw_data:
-st.dataframe(filtered_df.head(100), use_container_width=True)
-
-# 統計サマリー
-
-with st.expander(“📊 統計サマリー”):
-st.write(filtered_df.describe())
-
-# インタラクティブ要素
-
-st.markdown(”—”)
-st.subheader(“🎛️ インタラクティブ分析”)
-
-analysis_type = st.selectbox(
-“分析タイプを選択”,
-[“相関分析”, “売上予測”, “顧客セグメント”]
-)
-
-if analysis_type == “相関分析”:
-st.write(”**数値項目間の相関**”)
-numeric_cols = [“sales”, “customer_age”, “satisfaction”]
-corr_matrix = filtered_df[numeric_cols].corr()
-
-```
-fig, ax = plt.subplots(figsize=(8, 6))
-sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", center=0, ax=ax)
-st.pyplot(fig)
-```
-
-elif analysis_type == “売上予測”:
-st.write(”**簡易売上予測(線形回帰)**”)
-
-```
-# 簡単な予測モデル
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
-# 特徴量エンジニアリング
-model_df = filtered_df.copy()
-model_df["day_of_year"] = model_df["date"].dt.dayofyear
+# サンプルデータ生成
+@st.cache_data
+def generate_ml_data():
+    np.random.seed(42)
+    n_samples = 1000
+    X = np.random.randn(n_samples, 4)
+    y = X[:, 0] * 2 + X[:, 1] * -1.5 + X[:, 2] * 0.5 + X[:, 3] * 3 + np.random.randn(n_samples) * 0.1
+    
+    feature_names = ["feature_1", "feature_2", "feature_3", "feature_4"]
+    df = pd.DataFrame(X, columns=feature_names)
+    df["target"] = y
+    return df
 
-X = model_df[["customer_age", "satisfaction", "day_of_year"]]
-y = model_df["sales"]
+ml_df = generate_ml_data()
 
-model = LinearRegression()
-model.fit(X, y)
+# モデル選択
+model_type = st.selectbox("モデルを選択", ["線形回帰", "ランダムフォレスト"])
 
-predictions = model.predict(X)
+# データ分割
+X = ml_df.drop("target", axis=1)
+y = ml_df["target"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# モデル訓練
+if model_type == "線形回帰":
+    model = LinearRegression()
+else:
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+# 結果表示
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("予測精度 (R²)", f"{model.score(X, y):.3f}")
+    mse = mean_squared_error(y_test, y_pred)
+    st.metric("平均二乗誤差 (MSE)", f"{mse:.4f}")
 with col2:
-    st.metric("平均予測誤差", f"¥{np.mean(np.abs(y - predictions)):,.0f}")
+    r2 = r2_score(y_test, y_pred)
+    st.metric("決定係数 (R²)", f"{r2:.4f}")
+
+# 予測結果のプロット
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name="予測値"))
+fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], 
+                       y=[y_test.min(), y_test.max()], 
+                       mode="lines", name="理想線"))
+fig.update_layout(title="実際の値 vs 予測値", xaxis_title="実際の値", yaxis_title="予測値")
+st.plotly_chart(fig, use_container_width=True)
+
+# 特徴量重要度（ランダムフォレストの場合）
+if model_type == "ランダムフォレスト":
+    st.subheader("特徴量重要度")
+    importance_df = pd.DataFrame({
+        "feature": X.columns,
+        "importance": model.feature_importances_
+    }).sort_values("importance", ascending=False)
+    
+    fig = px.bar(importance_df, x="importance", y="feature", orientation="h",
+                title="特徴量重要度")
+    st.plotly_chart(fig, use_container_width=True)
 ```
 
-elif analysis_type == “顧客セグメント”:
-st.write(”**顧客セグメント分析**”)
+# リアルタイムチャートデモ
+
+elif selected_demo == “リアルタイムチャート”:
+st.header(“📊 リアルタイムチャートデモ”)
 
 ```
-segment_analysis = filtered_df.groupby(["region", "category"]).agg({
-    "sales": ["count", "mean", "sum"],
-    "satisfaction": "mean"
-}).round(2)
+# プレースホルダー
+chart_placeholder = st.empty()
+metrics_placeholder = st.empty()
 
-segment_analysis.columns = ["取引数", "平均売上", "総売上", "平均満足度"]
-st.dataframe(segment_analysis, use_container_width=True)
+# 制御ボタン
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("データ更新開始"):
+        st.session_state.update_data = True
+with col2:
+    if st.button("データ更新停止"):
+        st.session_state.update_data = False
+
+# セッション状態の初期化
+if "update_data" not in st.session_state:
+    st.session_state.update_data = False
+if "data_history" not in st.session_state:
+    st.session_state.data_history = []
+
+# データ更新
+if st.session_state.update_data:
+    # 新しいデータポイント生成
+    current_time = datetime.now()
+    new_value = np.random.normal(100, 15)
+    
+    st.session_state.data_history.append({
+        "time": current_time,
+        "value": new_value
+    })
+    
+    # 最新100件のみ保持
+    if len(st.session_state.data_history) > 100:
+        st.session_state.data_history = st.session_state.data_history[-100:]
+
+# データがある場合のみ表示
+if st.session_state.data_history:
+    df_realtime = pd.DataFrame(st.session_state.data_history)
+    
+    # メトリクス更新
+    with metrics_placeholder.container():
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("現在値", f"{df_realtime['value'].iloc[-1]:.2f}")
+        with col2:
+            st.metric("平均値", f"{df_realtime['value'].mean():.2f}")
+        with col3:
+            st.metric("標準偏差", f"{df_realtime['value'].std():.2f}")
+    
+    # チャート更新
+    with chart_placeholder.container():
+        fig = px.line(df_realtime, x="time", y="value", 
+                     title="リアルタイムデータ")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # 自動更新
+    if st.session_state.update_data:
+        st.rerun()
+```
+
+# 画像処理デモ
+
+elif selected_demo == “画像処理”:
+st.header(“🖼️ 画像処理デモ”)
+
+```
+# 画像アップロード
+uploaded_file = st.file_uploader("画像をアップロードしてください", 
+                               type=["jpg", "jpeg", "png"])
+
+if uploaded_file is not None:
+    from PIL import Image, ImageFilter, ImageEnhance
+    
+    # 画像読み込み
+    image = Image.open(uploaded_file)
+    
+    # オリジナル画像表示
+    st.subheader("オリジナル画像")
+    st.image(image, caption="アップロードされた画像", use_column_width=True)
+    
+    # 画像処理オプション
+    st.subheader("画像処理オプション")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        brightness = st.slider("明度", 0.5, 2.0, 1.0, 0.1)
+        contrast = st.slider("コントラスト", 0.5, 2.0, 1.0, 0.1)
+        saturation = st.slider("彩度", 0.0, 2.0, 1.0, 0.1)
+    
+    with col2:
+        blur_radius = st.slider("ぼかし", 0, 10, 0)
+        rotation = st.slider("回転角度", -180, 180, 0)
+    
+    # 画像処理適用
+    processed_image = image.copy()
+    
+    # 明度調整
+    enhancer = ImageEnhance.Brightness(processed_image)
+    processed_image = enhancer.enhance(brightness)
+    
+    # コントラスト調整
+    enhancer = ImageEnhance.Contrast(processed_image)
+    processed_image = enhancer.enhance(contrast)
+    
+    # 彩度調整
+    enhancer = ImageEnhance.Color(processed_image)
+    processed_image = enhancer.enhance(saturation)
+    
+    # ぼかし
+    if blur_radius > 0:
+        processed_image = processed_image.filter(ImageFilter.GaussianBlur(blur_radius))
+    
+    # 回転
+    if rotation != 0:
+        processed_image = processed_image.rotate(rotation, expand=True)
+    
+    # 処理済み画像表示
+    st.subheader("処理済み画像")
+    st.image(processed_image, caption="処理済み画像", use_column_width=True)
+    
+    # 画像情報表示
+    st.subheader("画像情報")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.write(f"サイズ: {image.size}")
+    with col2:
+        st.write(f"モード: {image.mode}")
+    with col3:
+        st.write(f"フォーマット: {image.format}")
 ```
 
 # フッター
 
 st.markdown(”—”)
-st.markdown(”*このダッシュボードはStreamlitで作成されました*”)
+st.markdown(“🚀 Streamlit サンプルアプリケーション - データ分析・機械学習・可視化のデモンストレーション”)
