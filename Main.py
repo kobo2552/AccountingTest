@@ -38,7 +38,7 @@ st.markdown("""
 
 # Main title
 
-st.markdown(’<h1 class="main-header">📊 Interactive Data Dashboard</h1>’, unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">📊 Interactive Data Dashboard</h1>', unsafe_allow_html=True)
 
 # Sidebar
 
@@ -51,7 +51,7 @@ st.sidebar.markdown("—")
 def generate_sample_data():
 """Generate sample data for the dashboard"""
 np.random.seed(42)
-dates = pd.date_range(start=‘2024-01-01’, end=‘2024-12-31’, freq=‘D’)
+dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
 
 ```
 df = pd.DataFrame({
@@ -79,35 +79,35 @@ df = generate_sample_data()
 st.sidebar.subheader("📅 Date Range")
 date_range = st.sidebar.date_input(
 "Select date range:",
-value=(df[‘date’].min(), df[‘date’].max()),
-min_value=df[‘date’].min(),
-max_value=df[‘date’].max()
+value=(df['date'].min(), df['date'].max()),
+min_value=df['date'].min(),
+max_value=df['date'].max()
 )
 
 st.sidebar.subheader("🏷️ Category Filter")
 categories = st.sidebar.multiselect(
 "Select categories:",
-options=df[‘category’].unique(),
-default=df[‘category’].unique()
+options=df['category'].unique(),
+default=df['category'].unique()
 )
 
 st.sidebar.subheader("🗺️ Region Filter")
 regions = st.sidebar.multiselect(
 "Select regions:",
-options=df[‘region’].unique(),
-default=df[‘region’].unique()
+options=df['region'].unique(),
+default=df['region'].unique()
 )
 
 # Filter data based on selections
 
 if len(date_range) == 2:
-mask = (df[‘date’] >= pd.to_datetime(date_range[0])) & (df[‘date’] <= pd.to_datetime(date_range[1]))
+mask = (df['date'] >= pd.to_datetime(date_range[0])) & (df['date'] <= pd.to_datetime(date_range[1]))
 filtered_df = df[mask]
 else:
 filtered_df = df
 
-filtered_df = filtered_df[filtered_df[‘category’].isin(categories)]
-filtered_df = filtered_df[filtered_df[‘region’].isin(regions)]
+filtered_df = filtered_df[filtered_df['category'].isin(categories)]
+filtered_df = filtered_df[filtered_df['region'].isin(regions)]
 
 # Main dashboard content
 
@@ -116,27 +116,27 @@ col1, col2, col3, col4 = st.columns(4)
 # Key metrics
 
 with col1:
-total_sales = filtered_df[‘sales’].iloc[-1] if len(filtered_df) > 0 else 0
+total_sales = filtered_df['sales'].iloc[-1] if len(filtered_df) > 0 else 0
 st.metric(
 label="📈 Total Sales",
 value=f"{total_sales:,.0f}",
-delta=f"{filtered_df[‘sales’].diff().mean():.1f} avg daily"
+delta=f"{filtered_df['sales'].diff().mean():.1f} avg daily"
 )
 
 with col2:
-total_customers = filtered_df[‘customers’].sum()
+total_customers = filtered_df['customers'].sum()
 st.metric(
 label="👥 Total Customers",
 value=f"{total_customers:,}",
-delta=f"{filtered_df[‘customers’].mean():.1f} avg daily"
+delta=f"{filtered_df['customers'].mean():.1f} avg daily"
 )
 
 with col3:
-total_revenue = filtered_df[‘revenue’].sum()
+total_revenue = filtered_df['revenue'].sum()
 st.metric(
 label="💰 Total Revenue",
 value=f"${total_revenue:,.0f}",
-delta=f"${filtered_df[‘revenue’].mean():.0f} avg daily"
+delta=f"${filtered_df['revenue'].mean():.0f} avg daily"
 )
 
 with col4:
@@ -158,15 +158,15 @@ st.subheader("📊 Sales Trend Over Time")
 if len(filtered_df) > 0:
 fig_sales = px.line(
 filtered_df,
-x=‘date’,
-y=‘sales’,
-title=‘Daily Sales Progression’,
-color_discrete_sequence=[’#1f77b4’]
+x='date',
+y='sales',
+title='Daily Sales Progression',
+color_discrete_sequence=['#1f77b4']
 )
 fig_sales.update_layout(
 xaxis_title="Date",
 yaxis_title="Cumulative Sales",
-hovermode=‘x unified’
+hovermode='x unified'
 )
 st.plotly_chart(fig_sales, use_container_width=True)
 else:
@@ -175,12 +175,12 @@ st.info("No data available for selected filters")
 with col2:
 st.subheader("🥧 Sales by Category")
 if len(filtered_df) > 0:
-category_sales = filtered_df.groupby(‘category’)[‘revenue’].sum().reset_index()
+category_sales = filtered_df.groupby('category')['revenue'].sum().reset_index()
 fig_pie = px.pie(
 category_sales,
-values=‘revenue’,
-names=‘category’,
-title=‘Revenue Distribution by Category’
+values='revenue',
+names='category',
+title='Revenue Distribution by Category'
 )
 st.plotly_chart(fig_pie, use_container_width=True)
 else:
@@ -272,7 +272,7 @@ with col2:
 st.subheader("📋 Data Sample")
 if len(filtered_df) > 0:
 st.dataframe(
-filtered_df.tail(10)[[‘date’, ‘sales’, ‘customers’, ‘revenue’, ‘category’]],
+filtered_df.tail(10)[['date', 'sales', 'customers', 'revenue', 'category']],
 use_container_width=True
 )
 
@@ -282,7 +282,7 @@ st.markdown("—")
 st.subheader("📁 Upload Your Own Data")
 uploaded_file = st.file_uploader(
 "Choose a CSV file",
-type=[‘csv’],
+type=['csv'],
 help="Upload a CSV file with columns: date, sales, customers, revenue, category, region"
 )
 
