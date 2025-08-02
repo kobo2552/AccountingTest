@@ -33,7 +33,7 @@ np.random.seed(42)
 dates = pd.date_range(
     start=datetime.now() - timedelta(days=365),
     end=datetime.now(),
-    freq='D'
+    freq="D"
 )
 
 data = []
@@ -41,16 +41,16 @@ for i, date in enumerate(dates):
     n_records = np.random.randint(1, 6)
     for _ in range(n_records):
         data.append({
-            'date': date,
-            'sales': np.random.normal(1000, 200),
-            'category': np.random.choice(['A', 'B', 'C', 'D']),
-            'region': np.random.choice(['Tokyo', 'Osaka', 'Nagoya', 'Fukuoka']),
-            'customer_age': np.random.randint(18, 70),
-            'satisfaction': np.random.randint(1, 6)
+            "date": date,
+            "sales": np.random.normal(1000, 200),
+            "category": np.random.choice(["A", "B", "C", "D"]),
+            "region": np.random.choice(["Tokyo", "Osaka", "Nagoya", "Fukuoka"]),
+            "customer_age": np.random.randint(18, 70),
+            "satisfaction": np.random.randint(1, 6)
         })
 
 df = pd.DataFrame(data)
-df['sales'] = np.maximum(df['sales'], 0)  # 負の値を除去
+df["sales"] = np.maximum(df["sales"], 0)  # 負の値を除去
 return df
 ```
 
@@ -66,25 +66,25 @@ st.sidebar.subheader(“データフィルタ”)
 
 date_range = st.sidebar.date_input(
 “日付範囲を選択”,
-value=(df[‘date’].min().date(), df[‘date’].max().date()),
-min_value=df[‘date’].min().date(),
-max_value=df[‘date’].max().date()
+value=(df[“date”].min().date(), df[“date”].max().date()),
+min_value=df[“date”].min().date(),
+max_value=df[“date”].max().date()
 )
 
 # カテゴリ選択
 
 categories = st.sidebar.multiselect(
 “カテゴリを選択”,
-options=df[‘category’].unique(),
-default=df[‘category’].unique()
+options=df[“category”].unique(),
+default=df[“category”].unique()
 )
 
 # 地域選択
 
 regions = st.sidebar.multiselect(
 “地域を選択”,
-options=df[‘region’].unique(),
-default=df[‘region’].unique()
+options=df[“region”].unique(),
+default=df[“region”].unique()
 )
 
 # データフィルタリング
@@ -92,15 +92,15 @@ default=df[‘region’].unique()
 if len(date_range) == 2:
 start_date, end_date = date_range
 filtered_df = df[
-(df[‘date’].dt.date >= start_date) &
-(df[‘date’].dt.date <= end_date) &
-(df[‘category’].isin(categories)) &
-(df[‘region’].isin(regions))
+(df[“date”].dt.date >= start_date) &
+(df[“date”].dt.date <= end_date) &
+(df[“category”].isin(categories)) &
+(df[“region”].isin(regions))
 ]
 else:
 filtered_df = df[
-(df[‘category’].isin(categories)) &
-(df[‘region’].isin(regions))
+(df[“category”].isin(categories)) &
+(df[“region”].isin(regions))
 ]
 
 # メインコンテンツ
@@ -127,25 +127,25 @@ col1, col2 = st.columns(2)
 
 with col1:
 st.subheader(“📈 日別売上推移”)
-daily_sales = filtered_df.groupby(‘date’)[‘sales’].sum().reset_index()
+daily_sales = filtered_df.groupby(“date”)[“sales”].sum().reset_index()
 
 ```
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.plot(daily_sales['date'], daily_sales['sales'], linewidth=2)
-ax.set_xlabel('日付')
-ax.set_ylabel('売上 (¥)')
-ax.tick_params(axis='x', rotation=45)
+ax.plot(daily_sales["date"], daily_sales["sales"], linewidth=2)
+ax.set_xlabel("日付")
+ax.set_ylabel("売上 (¥)")
+ax.tick_params(axis="x", rotation=45)
 plt.tight_layout()
 st.pyplot(fig)
 ```
 
 with col2:
 st.subheader(“🥧 カテゴリ別売上”)
-category_sales = filtered_df.groupby(‘category’)[‘sales’].sum()
+category_sales = filtered_df.groupby(“category”)[“sales”].sum()
 
 ```
 fig, ax = plt.subplots(figsize=(8, 8))
-ax.pie(category_sales.values, labels=category_sales.index, autopct='%1.1f%%')
+ax.pie(category_sales.values, labels=category_sales.index, autopct="%1.1f%%")
 st.pyplot(fig)
 ```
 
@@ -157,14 +157,14 @@ col1, col2 = st.columns(2)
 
 with col1:
 st.subheader(“🌍 地域別売上”)
-region_sales = filtered_df.groupby(‘region’)[‘sales’].sum().sort_values(ascending=True)
+region_sales = filtered_df.groupby(“region”)[“sales”].sum().sort_values(ascending=True)
 
 ```
 fig, ax = plt.subplots(figsize=(10, 6))
 bars = ax.barh(range(len(region_sales)), region_sales.values)
 ax.set_yticks(range(len(region_sales)))
 ax.set_yticklabels(region_sales.index)
-ax.set_xlabel('売上 (¥)')
+ax.set_xlabel("売上 (¥)")
 
 # カラフルなバー
 colors = plt.cm.viridis(np.linspace(0, 1, len(bars)))
@@ -180,15 +180,15 @@ st.subheader(“👥 年齢層別分析”)
 
 ```
 # 年齢層を作成
-filtered_df['age_group'] = pd.cut(
-    filtered_df['customer_age'], 
+filtered_df["age_group"] = pd.cut(
+    filtered_df["customer_age"], 
     bins=[0, 30, 40, 50, 100], 
-    labels=['~30歳', '30-40歳', '40-50歳', '50歳~']
+    labels=["~30歳", "30-40歳", "40-50歳", "50歳~"]
 )
 
-age_analysis = filtered_df.groupby('age_group').agg({
-    'sales': 'mean',
-    'satisfaction': 'mean'
+age_analysis = filtered_df.groupby("age_group").agg({
+    "sales": "mean",
+    "satisfaction": "mean"
 }).round(1)
 
 st.dataframe(age_analysis, use_container_width=True)
@@ -223,12 +223,12 @@ analysis_type = st.selectbox(
 
 if analysis_type == “相関分析”:
 st.write(”**数値項目間の相関**”)
-numeric_cols = [‘sales’, ‘customer_age’, ‘satisfaction’]
+numeric_cols = [“sales”, “customer_age”, “satisfaction”]
 corr_matrix = filtered_df[numeric_cols].corr()
 
 ```
 fig, ax = plt.subplots(figsize=(8, 6))
-sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, ax=ax)
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", center=0, ax=ax)
 st.pyplot(fig)
 ```
 
@@ -241,10 +241,10 @@ from sklearn.linear_model import LinearRegression
 
 # 特徴量エンジニアリング
 model_df = filtered_df.copy()
-model_df['day_of_year'] = model_df['date'].dt.dayofyear
+model_df["day_of_year"] = model_df["date"].dt.dayofyear
 
-X = model_df[['customer_age', 'satisfaction', 'day_of_year']]
-y = model_df['sales']
+X = model_df[["customer_age", "satisfaction", "day_of_year"]]
+y = model_df["sales"]
 
 model = LinearRegression()
 model.fit(X, y)
@@ -262,12 +262,12 @@ elif analysis_type == “顧客セグメント”:
 st.write(”**顧客セグメント分析**”)
 
 ```
-segment_analysis = filtered_df.groupby(['region', 'category']).agg({
-    'sales': ['count', 'mean', 'sum'],
-    'satisfaction': 'mean'
+segment_analysis = filtered_df.groupby(["region", "category"]).agg({
+    "sales": ["count", "mean", "sum"],
+    "satisfaction": "mean"
 }).round(2)
 
-segment_analysis.columns = ['取引数', '平均売上', '総売上', '平均満足度']
+segment_analysis.columns = ["取引数", "平均売上", "総売上", "平均満足度"]
 st.dataframe(segment_analysis, use_container_width=True)
 ```
 
