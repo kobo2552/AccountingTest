@@ -44,7 +44,7 @@ for i, date in enumerate(dates):
             'date': date,
             'sales': np.random.normal(1000, 200),
             'category': np.random.choice(['A', 'B', 'C', 'D']),
-            'region': np.random.choice(['東京', '大阪', '名古屋', '福岡']),
+            'region': np.random.choice(['Tokyo', 'Osaka', 'Nagoya', 'Fukuoka']),
             'customer_age': np.random.randint(18, 70),
             'satisfaction': np.random.randint(1, 6)
         })
@@ -233,7 +233,7 @@ st.pyplot(fig)
 ```
 
 elif analysis_type == “売上予測”:
-st.write(”**簡易売上予測（線形回帰）**”)
+st.write(”**簡易売上予測(線形回帰)**”)
 
 ```
 # 簡単な予測モデル
