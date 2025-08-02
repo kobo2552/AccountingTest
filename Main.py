@@ -49,7 +49,7 @@ st.sidebar.markdown("—")
 
 @st.cache_data
 def generate_sample_data():
-"""Generate sample data for the dashboard"""
+#"""Generate sample data for the dashboard"""
 np.random.seed(42)
 dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
 
