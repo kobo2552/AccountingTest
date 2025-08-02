@@ -1,314 +1,353 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime, timedelta
+import time
 
-# ページ設定
+# Configure the page
 
 st.set_page_config(
-page_title=“Streamlit サンプルアプリ”,
+page_title=“Interactive Data Dashboard”,
 page_icon=“📊”,
 layout=“wide”,
 initial_sidebar_state=“expanded”
 )
 
-# メインタイトル
+# Custom CSS for better styling
 
-st.title(“📊 Streamlit サンプルアプリケーション”)
-st.markdown(”—”)
+st.markdown(”””
 
-# サイドバー
+<style>
+    .main-header {
+        font-size: 3rem;
+        color: #1f77b4;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .metric-card {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 5px solid #1f77b4;
+    }
+</style>
 
-st.sidebar.header(“設定”)
-selected_demo = st.sidebar.selectbox(
-“デモを選択してください”,
-[“データ分析”, “機械学習予測”, “リアルタイムチャート”, “画像処理”]
-)
+“””, unsafe_allow_html=True)
 
-# データ分析デモ
+# Main title
 
-if selected_demo == “データ分析”:
-st.header(“📈 データ分析デモ”)
+st.markdown(’<h1 class="main-header">📊 Interactive Data Dashboard</h1>’, unsafe_allow_html=True)
 
-```
-# サンプルデータ生成
+# Sidebar
+
+st.sidebar.title(“🎛️ Dashboard Controls”)
+st.sidebar.markdown(”—”)
+
+# Sample data generation
+
 @st.cache_data
 def generate_sample_data():
-    np.random.seed(42)
-    dates = pd.date_range(start="2023-01-01", end="2024-12-31", freq="D")
-    data = {
-        "date": dates,
-        "sales": np.random.normal(1000, 200, len(dates)) + np.sin(np.arange(len(dates)) * 2 * np.pi / 365) * 100,
-        "visitors": np.random.poisson(150, len(dates)),
-        "conversion_rate": np.random.uniform(0.02, 0.08, len(dates)),
-        "category": np.random.choice(["A", "B", "C"], len(dates))
-    }
-    df = pd.DataFrame(data)
-    df["sales"] = np.maximum(df["sales"], 0)  # 負の値を0に
-    return df
+“”“Generate sample data for the dashboard”””
+np.random.seed(42)
+dates = pd.date_range(start=‘2024-01-01’, end=‘2024-12-31’, freq=‘D’)
+
+```
+df = pd.DataFrame({
+    'date': dates,
+    'sales': np.random.normal(1000, 200, len(dates)).cumsum(),
+    'customers': np.random.poisson(50, len(dates)),
+    'revenue': np.random.normal(5000, 1000, len(dates)),
+    'category': np.random.choice(['Electronics', 'Clothing', 'Books', 'Home'], len(dates)),
+    'region': np.random.choice(['North', 'South', 'East', 'West'], len(dates))
+})
+
+# Add some trend
+df['sales'] = df['sales'] + np.arange(len(df)) * 2
+df['revenue'] = df['revenue'] + np.arange(len(df)) * 10
+
+return df
+```
+
+# Load data
 
 df = generate_sample_data()
 
-# フィルター
-col1, col2 = st.columns(2)
-with col1:
-    start_date = st.date_input(
-        "開始日",
-        value=datetime(2024, 1, 1),
-        min_value=df["date"].min().date(),
-        max_value=df["date"].max().date()
-    )
-with col2:
-    end_date = st.date_input(
-        "終了日",
-        value=datetime(2024, 12, 31),
-        min_value=df["date"].min().date(),
-        max_value=df["date"].max().date()
-    )
+# Sidebar filters
 
-# データフィルタリング
-filtered_df = df[(df["date"] >= pd.Timestamp(start_date)) & (df["date"] <= pd.Timestamp(end_date))]
+st.sidebar.subheader(“📅 Date Range”)
+date_range = st.sidebar.date_input(
+“Select date range:”,
+value=(df[‘date’].min(), df[‘date’].max()),
+min_value=df[‘date’].min(),
+max_value=df[‘date’].max()
+)
 
-# メトリクス表示
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("総売上", f"¥{filtered_df['sales'].sum():,.0f}")
-with col2:
-    st.metric("総訪問者数", f"{filtered_df['visitors'].sum():,}")
-with col3:
-    avg_conversion = filtered_df["conversion_rate"].mean()
-    st.metric("平均コンバージョン率", f"{avg_conversion:.2%}")
-with col4:
-    avg_daily_sales = filtered_df["sales"].mean()
-    st.metric("平均日次売上", f"¥{avg_daily_sales:,.0f}")
+st.sidebar.subheader(“🏷️ Category Filter”)
+categories = st.sidebar.multiselect(
+“Select categories:”,
+options=df[‘category’].unique(),
+default=df[‘category’].unique()
+)
 
-# グラフ表示
-st.subheader("売上推移")
-fig = px.line(filtered_df, x="date", y="sales", title="日次売上推移")
-st.plotly_chart(fig, use_container_width=True)
+st.sidebar.subheader(“🗺️ Region Filter”)
+regions = st.sidebar.multiselect(
+“Select regions:”,
+options=df[‘region’].unique(),
+default=df[‘region’].unique()
+)
 
-# 散布図
-st.subheader("訪問者数と売上の関係")
-fig2 = px.scatter(filtered_df, x="visitors", y="sales", color="category",
-                 title="訪問者数 vs 売上", trendline="ols")
-st.plotly_chart(fig2, use_container_width=True)
-```
+# Filter data based on selections
 
-# 機械学習デモ
-
-elif selected_demo == “機械学習予測”:
-st.header(“🤖 機械学習予測デモ”)
-
-```
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-
-# サンプルデータ生成
-@st.cache_data
-def generate_ml_data():
-    np.random.seed(42)
-    n_samples = 1000
-    X = np.random.randn(n_samples, 4)
-    y = X[:, 0] * 2 + X[:, 1] * -1.5 + X[:, 2] * 0.5 + X[:, 3] * 3 + np.random.randn(n_samples) * 0.1
-    
-    feature_names = ["feature_1", "feature_2", "feature_3", "feature_4"]
-    df = pd.DataFrame(X, columns=feature_names)
-    df["target"] = y
-    return df
-
-ml_df = generate_ml_data()
-
-# モデル選択
-model_type = st.selectbox("モデルを選択", ["線形回帰", "ランダムフォレスト"])
-
-# データ分割
-X = ml_df.drop("target", axis=1)
-y = ml_df["target"]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# モデル訓練
-if model_type == "線形回帰":
-    model = LinearRegression()
+if len(date_range) == 2:
+mask = (df[‘date’] >= pd.to_datetime(date_range[0])) & (df[‘date’] <= pd.to_datetime(date_range[1]))
+filtered_df = df[mask]
 else:
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+filtered_df = df
 
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
+filtered_df = filtered_df[filtered_df[‘category’].isin(categories)]
+filtered_df = filtered_df[filtered_df[‘region’].isin(regions)]
 
-# 結果表示
-col1, col2 = st.columns(2)
+# Main dashboard content
+
+col1, col2, col3, col4 = st.columns(4)
+
+# Key metrics
+
 with col1:
-    mse = mean_squared_error(y_test, y_pred)
-    st.metric("平均二乗誤差 (MSE)", f"{mse:.4f}")
+total_sales = filtered_df[‘sales’].iloc[-1] if len(filtered_df) > 0 else 0
+st.metric(
+label=“📈 Total Sales”,
+value=f”{total_sales:,.0f}”,
+delta=f”{filtered_df[‘sales’].diff().mean():.1f} avg daily”
+)
+
 with col2:
-    r2 = r2_score(y_test, y_pred)
-    st.metric("決定係数 (R²)", f"{r2:.4f}")
+total_customers = filtered_df[‘customers’].sum()
+st.metric(
+label=“👥 Total Customers”,
+value=f”{total_customers:,}”,
+delta=f”{filtered_df[‘customers’].mean():.1f} avg daily”
+)
 
-# 予測結果のプロット
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name="予測値"))
-fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], 
-                       y=[y_test.min(), y_test.max()], 
-                       mode="lines", name="理想線"))
-fig.update_layout(title="実際の値 vs 予測値", xaxis_title="実際の値", yaxis_title="予測値")
-st.plotly_chart(fig, use_container_width=True)
+with col3:
+total_revenue = filtered_df[‘revenue’].sum()
+st.metric(
+label=“💰 Total Revenue”,
+value=f”${total_revenue:,.0f}”,
+delta=f”${filtered_df[‘revenue’].mean():.0f} avg daily”
+)
 
-# 特徴量重要度（ランダムフォレストの場合）
-if model_type == "ランダムフォレスト":
-    st.subheader("特徴量重要度")
-    importance_df = pd.DataFrame({
-        "feature": X.columns,
-        "importance": model.feature_importances_
-    }).sort_values("importance", ascending=False)
-    
-    fig = px.bar(importance_df, x="importance", y="feature", orientation="h",
-                title="特徴量重要度")
-    st.plotly_chart(fig, use_container_width=True)
-```
-
-# リアルタイムチャートデモ
-
-elif selected_demo == “リアルタイムチャート”:
-st.header(“📊 リアルタイムチャートデモ”)
-
-```
-# プレースホルダー
-chart_placeholder = st.empty()
-metrics_placeholder = st.empty()
-
-# 制御ボタン
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("データ更新開始"):
-        st.session_state.update_data = True
-with col2:
-    if st.button("データ更新停止"):
-        st.session_state.update_data = False
-
-# セッション状態の初期化
-if "update_data" not in st.session_state:
-    st.session_state.update_data = False
-if "data_history" not in st.session_state:
-    st.session_state.data_history = []
-
-# データ更新
-if st.session_state.update_data:
-    # 新しいデータポイント生成
-    current_time = datetime.now()
-    new_value = np.random.normal(100, 15)
-    
-    st.session_state.data_history.append({
-        "time": current_time,
-        "value": new_value
-    })
-    
-    # 最新100件のみ保持
-    if len(st.session_state.data_history) > 100:
-        st.session_state.data_history = st.session_state.data_history[-100:]
-
-# データがある場合のみ表示
-if st.session_state.data_history:
-    df_realtime = pd.DataFrame(st.session_state.data_history)
-    
-    # メトリクス更新
-    with metrics_placeholder.container():
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("現在値", f"{df_realtime['value'].iloc[-1]:.2f}")
-        with col2:
-            st.metric("平均値", f"{df_realtime['value'].mean():.2f}")
-        with col3:
-            st.metric("標準偏差", f"{df_realtime['value'].std():.2f}")
-    
-    # チャート更新
-    with chart_placeholder.container():
-        fig = px.line(df_realtime, x="time", y="value", 
-                     title="リアルタイムデータ")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # 自動更新
-    if st.session_state.update_data:
-        st.rerun()
-```
-
-# 画像処理デモ
-
-elif selected_demo == “画像処理”:
-st.header(“🖼️ 画像処理デモ”)
-
-```
-# 画像アップロード
-uploaded_file = st.file_uploader("画像をアップロードしてください", 
-                               type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    from PIL import Image, ImageFilter, ImageEnhance
-    
-    # 画像読み込み
-    image = Image.open(uploaded_file)
-    
-    # オリジナル画像表示
-    st.subheader("オリジナル画像")
-    st.image(image, caption="アップロードされた画像", use_column_width=True)
-    
-    # 画像処理オプション
-    st.subheader("画像処理オプション")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        brightness = st.slider("明度", 0.5, 2.0, 1.0, 0.1)
-        contrast = st.slider("コントラスト", 0.5, 2.0, 1.0, 0.1)
-        saturation = st.slider("彩度", 0.0, 2.0, 1.0, 0.1)
-    
-    with col2:
-        blur_radius = st.slider("ぼかし", 0, 10, 0)
-        rotation = st.slider("回転角度", -180, 180, 0)
-    
-    # 画像処理適用
-    processed_image = image.copy()
-    
-    # 明度調整
-    enhancer = ImageEnhance.Brightness(processed_image)
-    processed_image = enhancer.enhance(brightness)
-    
-    # コントラスト調整
-    enhancer = ImageEnhance.Contrast(processed_image)
-    processed_image = enhancer.enhance(contrast)
-    
-    # 彩度調整
-    enhancer = ImageEnhance.Color(processed_image)
-    processed_image = enhancer.enhance(saturation)
-    
-    # ぼかし
-    if blur_radius > 0:
-        processed_image = processed_image.filter(ImageFilter.GaussianBlur(blur_radius))
-    
-    # 回転
-    if rotation != 0:
-        processed_image = processed_image.rotate(rotation, expand=True)
-    
-    # 処理済み画像表示
-    st.subheader("処理済み画像")
-    st.image(processed_image, caption="処理済み画像", use_column_width=True)
-    
-    # 画像情報表示
-    st.subheader("画像情報")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.write(f"サイズ: {image.size}")
-    with col2:
-        st.write(f"モード: {image.mode}")
-    with col3:
-        st.write(f"フォーマット: {image.format}")
-```
-
-# フッター
+with col4:
+avg_order_value = total_revenue / total_customers if total_customers > 0 else 0
+st.metric(
+label=“🛒 Avg Order Value”,
+value=f”${avg_order_value:.2f}”,
+delta=“12.3%”
+)
 
 st.markdown(”—”)
-st.markdown(“🚀 Streamlit サンプルアプリケーション - データ分析・機械学習・可視化のデモンストレーション”)
+
+# Charts section
+
+col1, col2 = st.columns(2)
+
+with col1:
+st.subheader(“📊 Sales Trend Over Time”)
+if len(filtered_df) > 0:
+fig_sales = px.line(
+filtered_df,
+x=‘date’,
+y=‘sales’,
+title=‘Daily Sales Progression’,
+color_discrete_sequence=[’#1f77b4’]
+)
+fig_sales.update_layout(
+xaxis_title=“Date”,
+yaxis_title=“Cumulative Sales”,
+hovermode=‘x unified’
+)
+st.plotly_chart(fig_sales, use_container_width=True)
+else:
+st.info(“No data available for selected filters”)
+
+with col2:
+st.subheader(“🥧 Sales by Category”)
+if len(filtered_df) > 0:
+category_sales = filtered_df.groupby(‘category’)[‘revenue’].sum().reset_index()
+fig_pie = px.pie(
+category_sales,
+values=‘revenue’,
+names=‘category’,
+title=‘Revenue Distribution by Category’
+)
+st.plotly_chart(fig_pie, use_container_width=True)
+else:
+st.info(“No data available for selected filters”)
+
+# Full width chart
+
+st.subheader(“📈 Revenue and Customer Trends”)
+if len(filtered_df) > 0:
+fig_dual = go.Figure()
+
+```
+# Add revenue trace
+fig_dual.add_trace(
+    go.Scatter(
+        x=filtered_df['date'],
+        y=filtered_df['revenue'],
+        name='Revenue',
+        line=dict(color='#1f77b4'),
+        yaxis='y'
+    )
+)
+
+# Add customer trace
+fig_dual.add_trace(
+    go.Scatter(
+        x=filtered_df['date'],
+        y=filtered_df['customers'],
+        name='Customers',
+        line=dict(color='#ff7f0e'),
+        yaxis='y2'
+    )
+)
+
+# Update layout for dual y-axis
+fig_dual.update_layout(
+    title='Revenue and Customer Count Over Time',
+    xaxis_title='Date',
+    yaxis=dict(
+        title='Revenue ($)',
+        side='left'
+    ),
+    yaxis2=dict(
+        title='Customers',
+        side='right',
+        overlaying='y'
+    ),
+    hovermode='x unified'
+)
+
+st.plotly_chart(fig_dual, use_container_width=True)
+```
+
+st.markdown(”—”)
+
+# Interactive features section
+
+col1, col2 = st.columns(2)
+
+with col1:
+st.subheader(“🎯 Interactive Features”)
+
+```
+# Number input
+threshold = st.number_input(
+    "Revenue Threshold:",
+    min_value=0,
+    max_value=10000,
+    value=3000,
+    step=500
+)
+
+# Show days above threshold
+if len(filtered_df) > 0:
+    above_threshold = len(filtered_df[filtered_df['revenue'] > threshold])
+    st.write(f"Days with revenue above ${threshold}: **{above_threshold}**")
+
+# Slider for moving average
+ma_days = st.slider("Moving Average Days:", 1, 30, 7)
+
+# Selectbox for chart type
+chart_type = st.selectbox(
+    "Chart Style:",
+    ["Line", "Area", "Bar"]
+)
+```
+
+with col2:
+st.subheader(“📋 Data Sample”)
+if len(filtered_df) > 0:
+st.dataframe(
+filtered_df.tail(10)[[‘date’, ‘sales’, ‘customers’, ‘revenue’, ‘category’]],
+use_container_width=True
+)
+
+# File upload section
+
+st.markdown(”—”)
+st.subheader(“📁 Upload Your Own Data”)
+uploaded_file = st.file_uploader(
+“Choose a CSV file”,
+type=[‘csv’],
+help=“Upload a CSV file with columns: date, sales, customers, revenue, category, region”
+)
+
+if uploaded_file is not None:
+try:
+user_df = pd.read_csv(uploaded_file)
+st.success(“File uploaded successfully!”)
+st.write(“Preview of uploaded data:”)
+st.dataframe(user_df.head())
+except Exception as e:
+st.error(f”Error reading file: {e}”)
+
+# Real-time simulation
+
+st.markdown(”—”)
+st.subheader(“⚡ Real-time Data Simulation”)
+
+if st.button(“Start Real-time Simulation”):
+placeholder = st.empty()
+progress_bar = st.progress(0)
+
+```
+for i in range(10):
+    # Generate random data point
+    new_data = {
+        'Time': datetime.now().strftime('%H:%M:%S'),
+        'Value': np.random.randint(50, 150)
+    }
+    
+    # Update placeholder
+    with placeholder.container():
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Current Value", new_data['Value'])
+        with col2:
+            st.metric("Timestamp", new_data['Time'])
+    
+    # Update progress
+    progress_bar.progress((i + 1) / 10)
+    time.sleep(1)
+
+st.success("Simulation completed!")
+```
+
+# Footer
+
+st.markdown(”—”)
+st.markdown(”””
+
+<div style='text-align: center; color: #666666;'>
+    <p>Built with ❤️ using Streamlit | Last updated: {}</p>
+</div>
+""".format(datetime.now().strftime('%Y-%m-%d %H:%M')), unsafe_allow_html=True)
+
+# Sidebar info
+
+st.sidebar.markdown(”—”)
+st.sidebar.info(”””
+**Dashboard Features:**
+
+- 📊 Interactive charts
+- 🎛️ Dynamic filtering
+- 📈 Real-time simulation
+- 📁 File upload
+- 📱 Responsive design
+  “””)
+
+st.sidebar.success(“Dashboard loaded successfully!”)
